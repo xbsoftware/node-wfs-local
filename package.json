@@ -3,18 +3,18 @@
   "version": "0.1.0",
   "description": "Minimal subset of file operations for remote services",
   "main": "lib/entry.js",
+  "types": "lib/entry.d.ts",
   "directories": {
     "lib": "lib"
   },
   "scripts": {
     "test": "mocha -r ts-node/register sources/*.test.ts",
     "lint": "tslint --project tsconfig.json sources/**/*.ts",
-    "dist": "tsc",
-    "watch": "tsc"
+    "dist": "tsc"
   },
   "repository": {
     "type": "git",
-    "url": "ssh://git@git.webix.io:10022/mkozhukh/node-wfs.git"
+    "url": "ssh://git@github.com:xbsoftware/node-wfs-local.git"
   },
   "keywords": [
     "filesystem",

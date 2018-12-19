@@ -1,6 +1,9 @@
 Web File System - Local files driver
 =========
 
+[![npm version](https://badge.fury.io/js/wfs-local.svg)](https://badge.fury.io/js/wfs-local) 
+[![Build Status](https://drone-github.webix.io/api/badges/xbsoftware/node-wfs-local/status.svg)](https://drone-github.webix.io/xbsoftware/node-wfs-local)
+
 File system abstraction with access management.
 
 API provides common file operations for some folder on local drive. Any operations outside of the folder will be blocked. Also, it possible to configure a custom policy for read/write operations.
