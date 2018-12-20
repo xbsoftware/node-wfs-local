@@ -5,16 +5,22 @@ import getFileType from "./filetypes";
 import {CombinedPolicy, ForceRootPolicy} from "./policy";
 import {IDriveConfig, IFsObject, IListConfig, IPolicy, Operation} from "./types";
 
+const isWindows = filepath.sep === "\\";
+
 export default class LocalFiles {
 	private policy: IPolicy;
 	private _root: string;
 	private _config: IDriveConfig;
 
 	constructor(root: string, policy?: IPolicy, config?:IDriveConfig){
-		if (!root || root[0] !== "/"){
-			throw new Error("Invalid root folder");
-		}
-
+		if (!root ||
+			(!isWindows && root[0] !== "/") ||
+			(isWindows && !/^[A-Z]:\\/i.test(root))){
+				// expect full path from the drive root
+				// it is necessary to ensure ForceRoot policy
+				throw new Error("Invalid root folder");
+			}
+			
 		if (!policy) {
 			this.policy = new ForceRootPolicy(root);
 		}else {
@@ -192,7 +198,12 @@ export default class LocalFiles {
 		return filepath.normalize(filepath.join(this._root, id));
 	}
 	private pathToId(path: string): string {
-		return path.replace(this._root+"/", "");
+		const id = path.replace(this._root, "");
+
+		if (isWindows){
+				return id.replace(/\\/g, "/");
+		}
+		return id;
 	}
 
 	private async _listFolder(

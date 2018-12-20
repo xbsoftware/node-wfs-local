@@ -177,6 +177,7 @@ describe("LocalFiles", () => {
 			expect(data.length).to.eq(3);
 
 			expect(data[0].value).to.eq("sub");
+			expect(data[0].id).to.eq("/sub");
 			expect(!!data[0].data).to.eq(false);
 			expect(data[0].type).to.eq("folder");
 
@@ -211,6 +212,7 @@ describe("LocalFiles", () => {
 			expect(data[0].value).to.eq("sub");
 			expect(data[0].data.length).to.eq(1);
 			expect(data[0].data[0].value).to.eq("deep");
+			expect(data[0].data[0].id).to.eq("/sub/deep");
 			expect(data[0].data[0].data.length).to.eq(0);
 		});
 
@@ -228,9 +230,18 @@ describe("LocalFiles", () => {
 			} catch(e){
 				return;
 			}
-
 			expect.fail();
 		});
+
+		it("Prevent wrong root value", async () => {
+			try {
+				new LocalFiles("./data");
+			} catch(e){
+				return;
+			}
+			expect.fail();
+         });
+			
 
 		it("Can include by mask", async () => {
 			const data = await drive.list("/", {
