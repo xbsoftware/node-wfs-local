@@ -20,18 +20,24 @@ export default class LocalFiles {
 				// it is necessary to ensure ForceRoot policy
 				throw new Error("Invalid root folder");
 			}
-			
+
+		// /some/path/ => /some/path
+		if (root[root.length-1] === filepath.sep) {
+			root = root.substr(0, root.length-1);
+		}
+		// /root/some/../../other => /root/other
+		this._root = filepath.normalize(root);
+
 		if (!policy) {
-			this.policy = new ForceRootPolicy(root);
+			this.policy = new ForceRootPolicy(this._root);
 		}else {
 			this.policy = new CombinedPolicy(
-				new ForceRootPolicy(root),
+				new ForceRootPolicy(this._root),
 				policy
 			);
 		}
 
 		this._config = config || {};
-		this._root = root;
 	}
 
 	async list(path: string, config?: IListConfig) : Promise<IFsObject[]> {

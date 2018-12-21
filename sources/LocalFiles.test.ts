@@ -240,7 +240,15 @@ describe("LocalFiles", () => {
 				return;
 			}
 			expect.fail();
-         });
+        });
+
+		it("Normalize root value", async () => {
+			const path = await fs.realpath(__dirname + "/../test/sandbox");
+			const sdrive = new LocalFiles(path + "/sub/../");
+			const exists = await sdrive.exists("sub");
+
+			expect(exists).to.eq(true);
+        });
 			
 
 		it("Can include by mask", async () => {
