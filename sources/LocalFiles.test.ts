@@ -52,6 +52,15 @@ describe("LocalFiles", () => {
 
 			await drive.remove("/alfa");
 		});
+
+		it("Can create and rename a folder (if exists)", async () => {
+			await drive.mkdir("/sub/deep", {preventNameCollision:true});
+
+			const check = await drive.exists("/sub/deep(1)");
+			expect(check).to.eq(true);
+
+			await drive.remove("/sub/deep(1)");
+		});
 	});
 
 	describe("copy", () => {
@@ -75,6 +84,16 @@ describe("LocalFiles", () => {
 			await fs.unlink(path2);
 		});
 
+		it("Can copy and rename a file (if exists)", async () => {
+			await drive.copy("/c.jpg", "/sub", {preventNameCollision:true});
+			const path = __dirname+"/../test/sandbox/sub/c(1).jpg";
+
+			const check = await fs.pathExists(path);
+			expect(check).to.eq(true);
+
+			await fs.unlink(path);
+		});
+
 		it("Can copy a folder", async () => {
 			const path = __dirname+"/../test/sandbox/sub2";
 
@@ -89,6 +108,21 @@ describe("LocalFiles", () => {
 
 			await fs.remove(path);
 		});
+
+		it("Can copy and rename a folder (if exists)", async () => {
+			await drive.mkdir("/test.folder");
+			await drive.mkdir("/sub/test.folder");
+
+			await drive.copy("/test.folder", "/sub", {preventNameCollision:true});
+			const path = __dirname+"/../test/sandbox/sub/test.folder(1)";
+
+			const check = await fs.pathExists(path);
+			expect(check).to.eq(true);
+
+			await fs.remove(__dirname+"/../test/sandbox/test.folder");
+			await fs.remove(__dirname+"/../test/sandbox/sub/test.folder");
+			await fs.remove(path);
+		});
 	});
 
 	describe("move", () => {
@@ -97,6 +131,18 @@ describe("LocalFiles", () => {
 			const path2 = __dirname+"/../test/sandbox/sub/deep/copy.doc";
 
 			await drive.move("/sub/deep/deep.doc", "/sub/deep/copy.doc");
+			const check1 = await fs.pathExists(path1);
+			const check2 = await fs.pathExists(path2);
+			expect(check1).to.eq(false);
+			expect(check2).to.eq(true);
+			await fs.move(path2, path1);
+		});
+
+		it("Can move and rename a file (if exists)", async () => {
+			const path1 = __dirname+"/../test/sandbox/c.jpg";
+			const path2 = __dirname+"/../test/sandbox/sub/c(1).jpg";
+
+			await drive.move("/c.jpg", "/sub", {preventNameCollision:true});
 			const check1 = await fs.pathExists(path1);
 			const check2 = await fs.pathExists(path2);
 			expect(check1).to.eq(false);
@@ -125,6 +171,24 @@ describe("LocalFiles", () => {
 
 			await fs.remove(path3);
 		});
+
+		it("Can move and rename a folder (if exists)", async () => {
+			const path1 = __dirname+"/../test/sandbox/test.folder";
+			const path2 = __dirname+"/../test/sandbox/sub/test.folder";
+			const path3 = __dirname+"/../test/sandbox/sub/test.folder(1)";
+
+			await drive.mkdir("/test.folder");
+			await drive.mkdir("/sub/test.folder");
+
+			await drive.move("/test.folder", "/sub", {preventNameCollision:true});
+			const check1 = await fs.pathExists(path1);
+			const check2 = await fs.pathExists(path2);
+			expect(check1).to.eq(false);
+			expect(check2).to.eq(true);
+
+			await fs.remove(path2);
+			await fs.remove(path3);
+		});
 	});
 
 	describe("remove", () => {
@@ -145,6 +209,16 @@ describe("LocalFiles", () => {
 			await drive.write("/sub/deep/copy.doc", data);
 
 			const path = __dirname+"/../test/sandbox/sub/deep/copy.doc";
+			const text = await fs.readFile(path);
+			expect(text.toString("utf8")).to.eq("test");
+			await fs.unlink(path);
+		});
+
+		it("Can write  and rename a file (if exists)", async () => {
+			const data = await drive.read("/sub/deep/deep.doc");
+			await drive.write("/sub/deep/deep.doc", data, {preventNameCollision:true});
+
+			const path = __dirname+"/../test/sandbox/sub/deep/deep(1).doc";
 			const text = await fs.readFile(path);
 			expect(text.toString("utf8")).to.eq("test");
 			await fs.unlink(path);
@@ -174,7 +248,7 @@ describe("LocalFiles", () => {
 		it("Can read root", async () => {
 			const data = await drive.list("/");
 
-			expect(data.length).to.eq(3);
+			expect(data.length).to.eq(4);
 
 			expect(data[0].value).to.eq("sub");
 			expect(data[0].id).to.eq("/sub");
@@ -183,7 +257,10 @@ describe("LocalFiles", () => {
 
 			expect(data[1].value).to.eq("a.txt");
 			expect(data[2].value).to.eq("b.txt");
+			expect(data[3].value).to.eq("c.jpg");
+
 			expect(data[1].type).to.eq("text");
+			expect(data[3].type).to.eq("image");
 		});
 
 		it("Can read sub level", async () => {
@@ -219,7 +296,7 @@ describe("LocalFiles", () => {
 		it("Can read nested files and folders", async () => {
 			const data = await drive.list("/", { subFolders:true, nested:true });
 
-			expect(data.length).to.eq(3);
+			expect(data.length).to.eq(4);
 			expect(data[0].data.length).to.eq(2);
 			expect(data[0].data[0].data.length).to.eq(1);
 		});
@@ -249,7 +326,6 @@ describe("LocalFiles", () => {
 
 			expect(exists).to.eq(true);
         });
-			
 
 		it("Can include by mask", async () => {
 			const data = await drive.list("/", {
@@ -264,9 +340,10 @@ describe("LocalFiles", () => {
 
 		it("Can exclude by mask", async () => {
 			const data = await drive.list("/", { exclude: file => file === "a.txt" });
-			expect(data.length).to.eq(2);
+			expect(data.length).to.eq(3);
 			expect(data[0].value).to.eq("sub");
 			expect(data[1].value).to.eq("b.txt");
+			expect(data[2].value).to.eq("c.jpg");
 		});
 	});
 });

@@ -27,3 +27,7 @@ export interface IListConfig {
 export interface IDriveConfig {
 	verbose?:boolean;
 }
+
+export interface IOperationConfig {
+	preventNameCollision?: boolean;
+}
