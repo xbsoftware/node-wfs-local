@@ -301,6 +301,18 @@ export default class LocalFiles {
 		// filepath.extname grabs the characters after the last dot (app.css.gz return .gz, not .css.gz)
 		const ext = type === "file" ? name.substring(name.indexOf(".")) : "";
 		name = filepath.basename(name, ext);
+
+		const bracket1 = name.lastIndexOf("(");
+		const bracket2 = name.lastIndexOf(")");
+
+		if(bracket1 !== -1 && bracket2 === name.length-1){
+			const brackets  = Number(name.substring(bracket1+1, bracket2));
+			if(brackets  && brackets  >= 0){
+				name = name.substring(0, bracket1);
+				counter = brackets+1;
+			}
+		}
+
 		return name + "("+counter+")" + ext;
 	}
 
@@ -312,12 +324,8 @@ export default class LocalFiles {
 
 		let counter = 1;
 
-		if(files.indexOf(name) !== -1){
-			while (files.indexOf(this.getNewName(name, counter, type)) !== -1){
-				counter++;
-			}
-
-			name = this.getNewName(name, counter, type);
+		while (files.indexOf(name) !== -1){
+			name = this.getNewName(name, counter++, type);
 		}
 
 		return filepath.join(folder, name);
