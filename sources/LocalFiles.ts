@@ -302,15 +302,10 @@ export default class LocalFiles {
 		const ext = type === "file" ? name.substring(name.indexOf(".")) : "";
 		name = filepath.basename(name, ext);
 
-		const bracket1 = name.lastIndexOf("(");
-		const bracket2 = name.lastIndexOf(")");
-
-		if(bracket1 !== -1 && bracket2 === name.length-1){
-			const brackets  = Number(name.substring(bracket1+1, bracket2));
-			if(brackets  && brackets  >= 0){
-				name = name.substring(0, bracket1);
-				counter = brackets+1;
-			}
+		const match = name.match(/\(([0-9]*)\)$/);
+		if (match) {
+			name = name.substr(0, match.index);
+			counter = Number(match[1])+1;
 		}
 
 		return name + "("+counter+")" + ext;
