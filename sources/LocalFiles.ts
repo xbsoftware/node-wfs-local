@@ -41,13 +41,14 @@ export default class LocalFiles {
 	}
 
 	async list(path: string, config?: IListConfig) : Promise<IFsObject[]> {
+		config = config || {};
+
 		if (this._config.verbose){
 			console.log("List %s", path);
 			console.log("with config ", config);
 		}
 
 		const fullpath = this.idToPath(path);
-		config = config || {};
 
 		if (this.policy.comply(fullpath, Operation.Read)) {
 			return this._listFolder(fullpath, path, config, null);
