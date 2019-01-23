@@ -3,7 +3,7 @@ import * as filepath from "path";
 
 import getFileType from "./filetypes";
 import {CombinedPolicy, ForceRootPolicy} from "./policy";
-import {IDriveConfig, IFsObject, IListConfig, IPolicy, Operation} from "./types";
+import {IDriveConfig, IFsObject, IListConfig, IOperationConfig, IPolicy, Operation} from "./types";
 
 const isWindows = filepath.sep === "\\";
 
@@ -41,13 +41,14 @@ export default class LocalFiles {
 	}
 
 	async list(path: string, config?: IListConfig) : Promise<IFsObject[]> {
+		config = config || {};
+
 		if (this._config.verbose){
 			console.log("List %s", path);
 			console.log("with config ", config);
 		}
 
 		const fullpath = this.idToPath(path);
-		config = config || {};
 
 		if (this.policy.comply(fullpath, Operation.Read)) {
 			return this._listFolder(fullpath, path, config, null);
@@ -81,13 +82,17 @@ export default class LocalFiles {
 		throw new Error("Access Denied");
 	}
 
-	async write(path: string, data: fs.ReadStream): Promise<string> {
+	async write(path: string, data: fs.ReadStream, config?: IOperationConfig): Promise<string> {
 		if (this._config.verbose){
 			console.log("Save content to %s", path);
 		}
 
-		const fullpath = this.idToPath(path);
+		let fullpath = this.idToPath(path);
 		if (this.policy.comply(fullpath, Operation.Write)) {
+			if(config && config.preventNameCollision){
+				fullpath = await this.checkName(fullpath, "file");
+			}
+
 			const writeStream  = fs.createWriteStream(fullpath);
 			const result = data.pipe(writeStream);
 
@@ -121,21 +126,25 @@ export default class LocalFiles {
 		return obj;
 	}
 
-	async mkdir(path: string) : Promise<string> {
+	async mkdir(path: string, config?: IOperationConfig) : Promise<string> {
 		if (this._config.verbose){
 			console.log("Make folder %s", path);
 		}
 
-		const fullpath = this.idToPath(path);
+		let fullpath = this.idToPath(path);
 		if (!this.policy.comply(fullpath, Operation.Write)) {
 			throw new Error("Access Denied");
+		}
+
+		if(config && config.preventNameCollision){
+			fullpath = await this.checkName(fullpath, "folder");
 		}
 
 		await fs.ensureDir(fullpath);
 		return this.pathToId(fullpath);
 	}
 
-	async copy(sourceId: string, targetId: string): Promise<string> {
+	async copy(sourceId: string, targetId: string, config?: IOperationConfig): Promise<string> {
 		if (this._config.verbose){
 			console.log("Copy %s to %s", sourceId, targetId);
 		}
@@ -153,6 +162,12 @@ export default class LocalFiles {
 			target = filepath.join(target, filepath.basename(source));
 		}
 
+		if(config && config.preventNameCollision){
+			const stat = await fs.lstat(source);
+			const type = stat.isDirectory() ? "folder" : "file";
+			target = await this.checkName(target, type);
+		}
+
 		// file to file
 		await fs.copy(source, target);
 		return this.pathToId(target);
@@ -167,7 +182,7 @@ export default class LocalFiles {
 		throw new Error("Access Denied");
 	}
 
-	async move(source: string, target: string): Promise<string> {
+	async move(source: string, target: string, config?: IOperationConfig): Promise<string> {
 		if (this._config.verbose){
 			console.log("Move %s to %s", source, target);
 		}
@@ -185,6 +200,12 @@ export default class LocalFiles {
 		// file to folder
 		if (et) {
 			target = filepath.join(target, filepath.basename(source));
+		}
+
+		if(config && config.preventNameCollision){
+			const stat = await fs.lstat(source);
+			const type = stat.isDirectory() ? "folder" : "file";
+			target = await this.checkName(target, type);
 		}
 
 		await fs.move(source, target);
@@ -275,5 +296,34 @@ export default class LocalFiles {
 		}
 
 		return res;
+	}
+
+	private getNewName(name: string, counter: number, type: string) : string {
+		// filepath.extname grabs the characters after the last dot (app.css.gz return .gz, not .css.gz)
+		const ext = type === "file" ? name.substring(name.indexOf(".")) : "";
+		name = filepath.basename(name, ext);
+
+		const match = name.match(/\(([0-9]*)\)$/);
+		if (match) {
+			name = name.substr(0, match.index);
+			counter = Number(match[1])+1;
+		}
+
+		return name + "("+counter+")" + ext;
+	}
+
+	private async checkName(path: string, type: string) : Promise<string> {
+		const folder = filepath.dirname(path);
+		let name = filepath.basename(path);
+
+		const files = await fs.readdir(folder);
+
+		let counter = 1;
+
+		while (files.indexOf(name) !== -1){
+			name = this.getNewName(name, counter++, type);
+		}
+
+		return filepath.join(folder, name);
 	}
 }
