@@ -1,6 +1,6 @@
 {
   "name": "wfs-local",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Minimal subset of file operations for remote services",
   "main": "lib/entry.js",
   "types": "lib/entry.d.ts",
