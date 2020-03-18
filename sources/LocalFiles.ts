@@ -56,6 +56,10 @@ export default class LocalFiles {
 		throw new Error("Access Denied");
 	}
 
+	async search(path: string, search: string, config?: IListConfig) : Promise<IFsObject[]> {
+		return this.list(path, config)
+	}
+
 	async remove(path: string): Promise<void>{
 		if (this._config.verbose){
 			console.log("Delete %s", path);
@@ -82,19 +86,15 @@ export default class LocalFiles {
 		throw new Error("Access Denied");
 	}
 
-	async write(path: string, data: fs.ReadStream, config?: IOperationConfig): Promise<string> {
+	async write(path: string, data: fs.ReadStream): Promise<string> {
 		if (this._config.verbose){
 			console.log("Save content to %s", path);
 		}
 
 		let fullpath = this.idToPath(path);
 		if (this.policy.comply(fullpath, Operation.Write)) {
-			if(config && config.preventNameCollision){
-				fullpath = await this.checkName(fullpath, "file");
-			}
-
 			const writeStream  = fs.createWriteStream(fullpath);
-			const result = data.pipe(writeStream);
+			data.pipe(writeStream);
 
 			const done : Promise<void> = new Promise((res, rej) => {
 				data.on("end", res);
@@ -126,9 +126,9 @@ export default class LocalFiles {
 		return obj;
 	}
 
-	async mkdir(path: string, config?: IOperationConfig) : Promise<string> {
+	async make(path: string, name: string, isFolder: boolean, config?: IOperationConfig) : Promise<string> {
 		if (this._config.verbose){
-			console.log("Make folder %s", path);
+			console.log("Make entity %s %s", path, name);
 		}
 
 		let fullpath = this.idToPath(path);
@@ -137,14 +137,19 @@ export default class LocalFiles {
 		}
 
 		if(config && config.preventNameCollision){
-			fullpath = await this.checkName(fullpath, "folder");
+			name = await this.checkName(fullpath, name, isFolder);
 		}
 
-		await fs.ensureDir(fullpath);
+		fullpath = filepath.join(fullpath, name)
+		if (isFolder){
+			await fs.ensureDir(fullpath);
+		} else {
+			await fs.writeFile(fullpath, "")
+		}
 		return this.pathToId(fullpath);
 	}
 
-	async copy(sourceId: string, targetId: string, config?: IOperationConfig): Promise<string> {
+	async copy(sourceId: string, targetId: string, name: string, config?: IOperationConfig): Promise<string> {
 		if (this._config.verbose){
 			console.log("Copy %s to %s", sourceId, targetId);
 		}
@@ -156,19 +161,13 @@ export default class LocalFiles {
 			throw new Error("Access Denied");
 		}
 
-		const et = await this.isFolder(target);
-		// file to folder
-		if (et) {
-			target = filepath.join(target, filepath.basename(source));
-		}
-
+		if (!name) name = filepath.basename(source);
 		if(config && config.preventNameCollision){
 			const stat = await fs.lstat(source);
-			const type = stat.isDirectory() ? "folder" : "file";
-			target = await this.checkName(target, type);
+			name = await this.checkName(target, name, stat.isDirectory());
 		}
 
-		// file to file
+		target = filepath.join(target, name);
 		await fs.copy(source, target);
 		return this.pathToId(target);
 	}
@@ -182,7 +181,7 @@ export default class LocalFiles {
 		throw new Error("Access Denied");
 	}
 
-	async move(source: string, target: string, config?: IOperationConfig): Promise<string> {
+	async move(source: string, target: string, name: string, config?: IOperationConfig): Promise<string> {
 		if (this._config.verbose){
 			console.log("Move %s to %s", source, target);
 		}
@@ -195,30 +194,21 @@ export default class LocalFiles {
 			throw new Error("Access Denied");
 		}
 
-		const et = await this.isFolder(target);
-
-		// file to folder
-		if (et) {
-			target = filepath.join(target, filepath.basename(source));
-		}
-
+		if (!name) name = filepath.basename(source);
 		if(config && config.preventNameCollision){
 			const stat = await fs.lstat(source);
-			const type = stat.isDirectory() ? "folder" : "file";
-			target = await this.checkName(target, type);
+			name = await this.checkName(target, name, stat.isDirectory());
 		}
 
+		target = filepath.join(target, name);
 		await fs.move(source, target);
 		return this.pathToId(target);
 	}
 
-	private async isFolder(path: string): Promise<boolean> {
-		try {
-			const stat = await fs.lstat(path);
-			return stat.isDirectory();
-		} catch(e){
-			return false;
-		}
+	async stats(){
+		// there is no simple way to detect free space with nodejs
+		const used = 0, free = 0;
+		return { used, free };
 	}
 
 	private idToPath(id: string): string {
@@ -298,9 +288,9 @@ export default class LocalFiles {
 		return res;
 	}
 
-	private getNewName(name: string, counter: number, type: string) : string {
+	private getNewName(name: string, counter: number, isFolder: boolean) : string {
 		// filepath.extname grabs the characters after the last dot (app.css.gz return .gz, not .css.gz)
-		const ext = type === "file" ? name.substring(name.indexOf(".")) : "";
+		const ext = !isFolder ? name.substring(name.indexOf(".")) : "";
 		name = filepath.basename(name, ext);
 
 		const match = name.match(/\(([0-9]*)\)$/);
@@ -312,18 +302,15 @@ export default class LocalFiles {
 		return name + "("+counter+")" + ext;
 	}
 
-	private async checkName(path: string, type: string) : Promise<string> {
-		const folder = filepath.dirname(path);
-		let name = filepath.basename(path);
-
+	private async checkName(folder: string, name: string, isFolder: boolean) : Promise<string> {
 		const files = await fs.readdir(folder);
 
 		let counter = 1;
 
 		while (files.indexOf(name) !== -1){
-			name = this.getNewName(name, counter++, type);
+			name = this.getNewName(name, counter++, isFolder);
 		}
 
-		return filepath.join(folder, name);
+		return name;
 	}
 }

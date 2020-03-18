@@ -39,13 +39,13 @@ describe("LocalFiles", () => {
 
 			const info2 = await drive.info("/a.txt");
 			expect(info2.value).to.eq("a.txt");
-			expect(info2.type).to.eq("text");
+			expect(info2.type).to.eq("code");
 		});
 	});
 
 	describe("mkdir", () => {
 		it("Can create a folder", async () => {
-			await drive.mkdir("/alfa/123/a");
+			await drive.make("/alfa/123", "a", true);
 
 			const check = await drive.exists("/alfa/123/a");
 			expect(check).to.eq(true);
@@ -54,7 +54,7 @@ describe("LocalFiles", () => {
 		});
 
 		it("Can create and rename a folder (if exists)", async () => {
-			await drive.mkdir("/sub/deep", {preventNameCollision:true});
+			await drive.make("/sub", "deep", true, {preventNameCollision:true});
 
 			const check = await drive.exists("/sub/deep(1)");
 			expect(check).to.eq(true);
@@ -68,24 +68,24 @@ describe("LocalFiles", () => {
 			const path = __dirname+"/../test/sandbox/sub/deep/copy.doc";
 			const path2 = __dirname+"/../test/sandbox/sub/deep.doc";
 
-			await drive.copy("/sub/deep/deep.doc", "/sub/deep/copy.doc");
+			await drive.copy("/sub/deep/deep.doc", "/sub/deep", "copy.doc");
 			const check = await fs.pathExists(path);
 			expect(check).to.eq(true);
 			await fs.unlink(path);
 
-			await drive.copy("/sub/deep/deep.doc", "/sub");
+			await drive.copy("/sub/deep/deep.doc", "/sub", "deep.doc");
 			const check2 = await fs.pathExists(path2);
 			expect(check2).to.eq(true);
 			await fs.unlink(path2);
 
-			await drive.copy("/sub/deep/deep.doc", "/sub/");
+			await drive.copy("/sub/deep/deep.doc", "/sub", "deep.doc");
 			const check3 = await fs.pathExists(path2);
 			expect(check3).to.eq(true);
 			await fs.unlink(path2);
 		});
 
 		it("Can copy and rename a file (if exists)", async () => {
-			await drive.copy("/c.jpg", "/sub", {preventNameCollision:true});
+			await drive.copy("/c.jpg", "/sub", "c.jpg", {preventNameCollision:true});
 			const path = __dirname+"/../test/sandbox/sub/c(1).jpg";
 
 			const check = await fs.pathExists(path);
@@ -97,12 +97,12 @@ describe("LocalFiles", () => {
 		it("Can copy a folder", async () => {
 			const path = __dirname+"/../test/sandbox/sub2";
 
-			await drive.copy("/sub", "/sub2");
+			await drive.copy("/sub", "/sub2", "sub");
 			const list1 = await drive.list("/sub", { subFolders: true });
 			const list2 = await drive.list("/sub2", { subFolders: true });
 			expect(cleanDates(list1)).to.deep.eq(cleanDates(list2));
 
-			await drive.copy("/sub", "/sub2/");
+			await drive.copy("/sub", "/sub2/", "sub");
 			const list3 = await drive.list("/sub2/sub", { subFolders: true });
 			expect(cleanDates(list1)).to.deep.eq(cleanDates(list3));
 
@@ -110,10 +110,10 @@ describe("LocalFiles", () => {
 		});
 
 		it("Can copy and rename a folder (if exists)", async () => {
-			await drive.mkdir("/test.folder");
-			await drive.mkdir("/sub/test.folder");
+			await drive.make("/", "test.folder", true);
+			await drive.make("/sub", "test.folder", true);
 
-			await drive.copy("/test.folder", "/sub", {preventNameCollision:true});
+			await drive.copy("/test.folder", "/sub", "test.folder", {preventNameCollision:true});
 			const path = __dirname+"/../test/sandbox/sub/test.folder(1)";
 
 			const check = await fs.pathExists(path);
@@ -130,7 +130,7 @@ describe("LocalFiles", () => {
 			const path1 = __dirname+"/../test/sandbox/sub/deep/deep.doc";
 			const path2 = __dirname+"/../test/sandbox/sub/deep/copy.doc";
 
-			await drive.move("/sub/deep/deep.doc", "/sub/deep/copy.doc");
+			await drive.move("/sub/deep/deep.doc", "/sub/deep", "copy.doc");
 			const check1 = await fs.pathExists(path1);
 			const check2 = await fs.pathExists(path2);
 			expect(check1).to.eq(false);
@@ -142,7 +142,7 @@ describe("LocalFiles", () => {
 			const path1 = __dirname+"/../test/sandbox/c.jpg";
 			const path2 = __dirname+"/../test/sandbox/sub/c(1).jpg";
 
-			await drive.move("/c.jpg", "/sub", {preventNameCollision:true});
+			await drive.move("/c.jpg", "/sub", "c.jpg", {preventNameCollision:true});
 			const check1 = await fs.pathExists(path1);
 			const check2 = await fs.pathExists(path2);
 			expect(check1).to.eq(false);
@@ -155,15 +155,15 @@ describe("LocalFiles", () => {
 			const path2 = __dirname+"/../test/sandbox/sub2";
 			const path3 = __dirname+"/../test/sandbox/sub/deep/sub2";
 
-			await drive.copy("/sub", "/sub3");
-			await drive.move("/sub3", "/sub2");
+			await drive.copy("/sub", "/sub3", "sub");
+			await drive.move("/sub3", "/sub2", "sub3");
 			const list1 = await drive.list("/sub", { subFolders: true });
 			const list2 = await drive.list("/sub2", { subFolders: true });
 			expect(cleanDates(list1)).to.deep.eq(cleanDates(list2));
 			const check1 = await fs.pathExists(path1);
 			expect(check1).to.eq(false);
 
-			await drive.move("/sub2", "/sub/deep");
+			await drive.move("/sub2", "/sub/deep", "sub2");
 			const list3 = await drive.list("/sub/deep/sub2", { subFolders: true });
 			expect(cleanDates(list1)).to.deep.eq(cleanDates(list3));
 			const check2 = await fs.pathExists(path2);
@@ -177,10 +177,10 @@ describe("LocalFiles", () => {
 			const path2 = __dirname+"/../test/sandbox/sub/test.folder";
 			const path3 = __dirname+"/../test/sandbox/sub/test.folder(1)";
 
-			await drive.mkdir("/test.folder");
-			await drive.mkdir("/sub/test.folder");
+			await drive.make("/", "test.folder", true);
+			await drive.make("/sub", "test.folder", true);
 
-			await drive.move("/test.folder", "/sub", {preventNameCollision:true});
+			await drive.move("/test.folder", "/sub", "test.folder", {preventNameCollision:true});
 			const check1 = await fs.pathExists(path1);
 			const check2 = await fs.pathExists(path2);
 			expect(check1).to.eq(false);
@@ -216,7 +216,8 @@ describe("LocalFiles", () => {
 
 		it("Can write  and rename a file (if exists)", async () => {
 			const data = await drive.read("/sub/deep/deep.doc");
-			await drive.write("/sub/deep/deep.doc", data, {preventNameCollision:true});
+			const file = await drive.make("/sub/deep", "deep.doc", false, {preventNameCollision:true});
+			await drive.write(file, data);
 
 			const path = __dirname+"/../test/sandbox/sub/deep/deep(1).doc";
 			const text = await fs.readFile(path);
@@ -259,7 +260,7 @@ describe("LocalFiles", () => {
 			expect(data[2].value).to.eq("b.txt");
 			expect(data[3].value).to.eq("c.jpg");
 
-			expect(data[1].type).to.eq("text");
+			expect(data[1].type).to.eq("code");
 			expect(data[3].type).to.eq("image");
 		});
 
@@ -312,12 +313,12 @@ describe("LocalFiles", () => {
 
 		it("Prevent wrong root value", async () => {
 			try {
-				new LocalFiles("./data");
+				const t = new LocalFiles("./data");
 			} catch(e){
 				return;
 			}
 			expect.fail();
-        });
+		});
 
 		it("Normalize root value", async () => {
 			const path = await fs.realpath(__dirname + "/../test/sandbox");
@@ -325,7 +326,7 @@ describe("LocalFiles", () => {
 			const exists = await sdrive.exists("sub");
 
 			expect(exists).to.eq(true);
-        });
+		});
 
 		it("Can include by mask", async () => {
 			const data = await drive.list("/", {
