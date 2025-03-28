@@ -20,8 +20,8 @@ export interface IListConfig {
 	skipFiles?:boolean;
 	subFolders?:boolean;
 	nested?:boolean;
-	exclude?: (a:string) => boolean;
-	include?: (a:string) => boolean;
+	exclude?: (file:IFsObject) => boolean;
+	include?: (file:IFsObject) => boolean;
 }
 
 export interface IDriveConfig {

@@ -236,15 +236,16 @@ export default class LocalFiles {
 			if (name === ".") {
 				continue;
 			}
-			if (cfg.exclude && cfg.exclude(name)) {
-				continue;
-			}
 
 			const fullpath = filepath.join(this._root, prefix, name);
 			const id = this.pathToId(fullpath);
 			const stat = await fs.lstat(fullpath);
 			const type = stat.isDirectory() ? "folder" : getFileType(name);
 			const obj : IFsObject = { value:name, id, size:stat.size, date:stat.mtime.valueOf()/1000, type };
+
+			if (cfg.exclude && cfg.exclude(obj)) {
+				continue;
+			}
 
 			if (stat.isDirectory()) {
 				if (cfg.subFolders) {
@@ -264,7 +265,7 @@ export default class LocalFiles {
 				}
 			}
 
-			if (cfg.include && !cfg.include(name)){
+			if (cfg.include && !cfg.include(obj)){
 				continue;
 			}
 			res.push(obj);
