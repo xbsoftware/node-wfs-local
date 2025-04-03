@@ -20,50 +20,59 @@ Can be used as backend for Webix File Manager https://webix.com/filemanager
 const wfs = require("wfs-local");
 const fs = new wfs.LocalFiles("/temp/folder");
 
-//get files in a folder
+// get files in a folder
 let files = await fs.list("/subfolder");
 
-//get files in a folder and subfolders as plain list
+// get files in a folder and subfolders as plain list
 let files = await fs.list("/subfolder", { subFolders: true });
 
-//get files in a folder and subfolders as nested structure
+// get files in a folder and subfolders as nested structure
 let files = await fs.list("/subfolder", { subFolders: true, nested:true });
 
-//get folder only
+// get folder only
 let files = await fs.list("/subfolder", { skipFiles: true });
 
-//get files that match a mask
-let files = await fs.list("/subfolder", { include: a => /\.(txt|doc)/.test(a) });
+// get files that match a mask
+let files = await fs.list("/subfolder", { include: file => file.value.includes("name")});
 
-//ignore some files
-let files = await fs.list("/subfolder", { exclude: a => a === ".git" });
+// get files with specific types
+let files = await fs.list("/subfolder", { include: file => ["txt","doc"].includes(file.type) });
 
-//get info about a single file
+// get files created on or after January 1, 2025
+let files = await fs.list("/subfolder", { include: file => new Date(file.date) >= new Date("2025-01-01")});
+
+// get files smaller than 1 MB
+let files = await fs.list("/subfolder", { include: file => file.size < 1024*1024});
+
+// ignore some files
+let files = await fs.list("/subfolder", { exclude: file => file.value === ".git" });
+
+// get info about a single file
 let info = await fs.info("some.txt");
 
-//check if file exists
+// check if file exists
 let check = await fs.exists("some.txt");
 ```
 
 ### Modify files
 
 ```js
-//make folder
+// make folder
 await fs.mkdir("sub2");
 
-//remove
+// remove
 await fs.remove("some.txt");
 
-//copy
+// copy
 await fs.copy("some.txt", "/sub/");
 
-//move
+// move
 await fs.copy("some.txt", "some-data.txt");
 
-//read
+// read
 let stream = await fs.read("some.txt");
 
-//write
+// write
 await fs.write("some.txt", stream)
 ```
 
@@ -91,7 +100,7 @@ const fs = new wfs.LocalFiles("/temp/folder", {
 ### Other API
 
 ```js
-//logging
+// logging
 const wfs = require("wfs-local");
 const fs = new wfs.LocalFiles("/temp/folder", null, { verbose: true });
 ```
