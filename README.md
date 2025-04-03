@@ -2,7 +2,6 @@ Web File System - Local files driver
 =========
 
 [![npm version](https://badge.fury.io/js/wfs-local.svg)](https://badge.fury.io/js/wfs-local) 
-[![Build Status](https://drone-github.webix.io/api/badges/xbsoftware/node-wfs-local/status.svg)](https://drone-github.webix.io/xbsoftware/node-wfs-local)
 
 File system abstraction with access management.
 
